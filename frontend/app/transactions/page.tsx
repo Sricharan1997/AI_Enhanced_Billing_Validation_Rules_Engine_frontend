@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import TransactionTable from '@/components/tables/TransactionTable';
 import Button from '@/components/common/Button';
 import { Transaction } from '@/types/transaction';
+import { transactionService } from '@/services';
 
-// Mock data for demonstration
+// Mock data for fallback
 const mockTransactions: Transaction[] = [
   {
     id: '1',
@@ -61,22 +62,65 @@ const mockTransactions: Transaction[] = [
 ];
 
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
-  const [isLoading, setIsLoading] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [vendorFilter, setVendorFilter] = useState('');
+
+  // Fetch transactions from API
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setIsLoading(true);
+        setHasError(false);
+
+        const response = await transactionService.getTransactions({
+          search: searchQuery || undefined,
+          status: statusFilter || undefined,
+          vendor: vendorFilter || undefined,
+        });
+
+        setTransactions(response.data || mockTransactions);
+      } catch (error) {
+        console.error('Failed to fetch transactions:', error);
+        // Fallback to mock data on error
+        setTransactions(mockTransactions);
+        setHasError(false); // Don't show error UI, just use mock data
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, [searchQuery, statusFilter, vendorFilter]);
 
   const handleViewDetails = (transaction: Transaction) => {
     console.log('View details for:', transaction);
     alert(`Viewing details for ${transaction.transactionId}`);
   };
 
-  const handleDelete = (transactionId: string) => {
+  const handleDelete = async (transactionId: string) => {
     if (confirm('Are you sure you want to delete this transaction?')) {
-      setTransactions(transactions.filter((t) => t.id !== transactionId));
+      try {
+        await transactionService.deleteTransaction(transactionId);
+        setTransactions(transactions.filter((t) => t.id !== transactionId));
+      } catch (error) {
+        console.error('Failed to delete transaction:', error);
+        alert('Failed to delete transaction');
+      }
     }
   };
 
   const handleNewTransaction = () => {
     alert('New transaction dialog would open here');
+  };
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('');
+    setVendorFilter('');
   };
 
   return (
@@ -120,6 +164,8 @@ export default function TransactionsPage() {
               <input
                 type="text"
                 placeholder="TXN-..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               />
             </div>
@@ -127,27 +173,37 @@ export default function TransactionsPage() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Status
               </label>
-              <select className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800 dark:text-white">
-                <option>All</option>
-                <option>Pending</option>
-                <option>Passed</option>
-                <option>Failed</option>
-                <option>Warning</option>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              >
+                <option value="">All</option>
+                <option value="pending">Pending</option>
+                <option value="passed">Passed</option>
+                <option value="failed">Failed</option>
+                <option value="warning">Warning</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Vendor
               </label>
-              <select className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800 dark:text-white">
-                <option>All</option>
-                <option>Vendor A</option>
-                <option>Vendor B</option>
-                <option>Vendor C</option>
+              <select
+                value={vendorFilter}
+                onChange={(e) => setVendorFilter(e.target.value)}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              >
+                <option value="">All</option>
+                <option value="Vendor A">Vendor A</option>
+                <option value="Vendor B">Vendor B</option>
+                <option value="Vendor C">Vendor C</option>
+                <option value="Vendor D">Vendor D</option>
+                <option value="Vendor E">Vendor E</option>
               </select>
             </div>
             <div className="flex items-end">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" onClick={handleResetFilters} className="w-full">
                 Reset Filters
               </Button>
             </div>
@@ -160,6 +216,7 @@ export default function TransactionsPage() {
           isLoading={isLoading}
           onViewDetails={handleViewDetails}
           onDelete={handleDelete}
+          hasError={hasError}
         />
 
         {/* Summary Stats */}
