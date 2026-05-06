@@ -58,6 +58,12 @@ export default function Navbar({ onMenuToggle }: NavbarProps) {
             >
               AI Insights
             </Link>
+            <Link
+              href="/correction-suggestions"
+              className="text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
+            >
+              Corrections
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -127,6 +133,12 @@ export default function Navbar({ onMenuToggle }: NavbarProps) {
                 className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
               >
                 AI Insights
+              </Link>
+              <Link
+                href="/correction-suggestions"
+                className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                Corrections
               </Link>
             </div>
           </div>
