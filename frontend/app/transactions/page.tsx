@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import TransactionTable from '@/components/tables/TransactionTable';
 import Button from '@/components/common/Button';
+import { DuplicateTransactionWarning, SearchBar, FilterDropdown } from '@/components/common';
 import { Transaction } from '@/types/transaction';
 import { transactionService } from '@/services';
 import { formatErrorMessage } from '@/utils/errorHandler';
@@ -128,6 +129,8 @@ export default function TransactionsPage() {
   const [vendorFilter, setVendorFilter] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [duplicateCount, setDuplicateCount] = useState(0);
 
   // Fetch transactions from API
   useEffect(() => {
@@ -144,6 +147,7 @@ export default function TransactionsPage() {
         });
 
         setTransactions(response.data || mockTransactions);
+        detectDuplicates(response.data || mockTransactions);
       } catch (error) {
         console.error('Failed to fetch transactions:', error);
         
@@ -154,6 +158,7 @@ export default function TransactionsPage() {
         // Show error state but still allow user to see mock data
         setHasError(true);
         setTransactions(mockTransactions);
+        detectDuplicates(mockTransactions);
       } finally {
         setIsLoading(false);
       }
@@ -175,6 +180,24 @@ export default function TransactionsPage() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedTransaction(null);
+  };
+
+  const detectDuplicates = (txns: Transaction[]) => {
+    // Check for similar transactions in the last 3 transactions
+    if (txns.length > 1) {
+      const recentTxn = txns[0];
+      const similarTxns = txns.slice(1, 4).filter((t) => 
+        t.vendor === recentTxn.vendor && 
+        Math.abs(t.amount - recentTxn.amount) < 100
+      );
+      
+      if (similarTxns.length > 0) {
+        setDuplicateCount(similarTxns.length);
+        setShowDuplicateWarning(true);
+        return;
+      }
+    }
+    setShowDuplicateWarning(false);
   };
 
   const handleDelete = async (transactionId: string) => {
@@ -270,57 +293,63 @@ export default function TransactionsPage() {
           </Button>
         </div>
 
+        {/* Duplicate Warning */}
+        <DuplicateTransactionWarning
+          isVisible={showDuplicateWarning}
+          count={duplicateCount}
+          message={`We found ${duplicateCount} similar transaction${duplicateCount !== 1 ? 's' : ''} from the same vendor with similar amounts.`}
+          onDismiss={() => setShowDuplicateWarning(false)}
+          onViewDuplicates={() => console.log('View duplicates')}
+        />
+
         {/* Filters */}
         <div className="card">
-          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Search ID
-              </label>
-              <input
-                type="text"
-                placeholder="TXN-..."
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* Search Bar */}
+            <div className="md:col-span-2 lg:col-span-1">
+              <SearchBar
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={setSearchQuery}
+                placeholder="Search by Transaction ID..."
                 disabled={isLoading}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                showClearButton={true}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Status
-              </label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                disabled={isLoading}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              >
-                <option value="">All</option>
-                <option value="pending">Pending</option>
-                <option value="passed">Passed</option>
-                <option value="failed">Failed</option>
-                <option value="warning">Warning</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Vendor
-              </label>
-              <select
-                value={vendorFilter}
-                onChange={(e) => setVendorFilter(e.target.value)}
-                disabled={isLoading}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              >
-                <option value="">All</option>
-                <option value="Vendor A">Vendor A</option>
-                <option value="Vendor B">Vendor B</option>
-                <option value="Vendor C">Vendor C</option>
-                <option value="Vendor D">Vendor D</option>
-                <option value="Vendor E">Vendor E</option>
-              </select>
-            </div>
+
+            {/* Status Filter */}
+            <FilterDropdown
+              label="Status"
+              options={[
+                { label: 'All Statuses', value: '', count: transactions.length },
+                { label: 'Pending', value: 'pending', icon: '⏳', count: transactions.filter(t => t.status === 'pending').length },
+                { label: 'Passed', value: 'passed', icon: '✅', count: transactions.filter(t => t.status === 'passed').length },
+                { label: 'Failed', value: 'failed', icon: '❌', count: transactions.filter(t => t.status === 'failed').length },
+                { label: 'Warning', value: 'warning', icon: '⚠️', count: transactions.filter(t => t.status === 'warning').length },
+              ]}
+              value={statusFilter}
+              onChange={setStatusFilter}
+              disabled={isLoading}
+              showCount={true}
+            />
+
+            {/* Vendor Filter */}
+            <FilterDropdown
+              label="Vendor"
+              options={[
+                { label: 'All Vendors', value: '', count: transactions.length },
+                { label: 'Vendor A', value: 'Vendor A', icon: '🏢', count: transactions.filter(t => t.vendor === 'Vendor A').length },
+                { label: 'Vendor B', value: 'Vendor B', icon: '🏢', count: transactions.filter(t => t.vendor === 'Vendor B').length },
+                { label: 'Vendor C', value: 'Vendor C', icon: '🏢', count: transactions.filter(t => t.vendor === 'Vendor C').length },
+                { label: 'Vendor D', value: 'Vendor D', icon: '🏢', count: transactions.filter(t => t.vendor === 'Vendor D').length },
+                { label: 'Vendor E', value: 'Vendor E', icon: '🏢', count: transactions.filter(t => t.vendor === 'Vendor E').length },
+              ]}
+              value={vendorFilter}
+              onChange={setVendorFilter}
+              disabled={isLoading}
+              showCount={true}
+            />
+
+            {/* Reset Button */}
             <div className="flex items-end">
               <Button
                 variant="outline"

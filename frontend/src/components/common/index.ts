@@ -3,3 +3,6 @@ export { default as EmptyState } from './EmptyState';
 export { default as ValidationBadge } from './ValidationBadge';
 export { default as Modal } from './Modal';
 export { default as Card } from './Card';
+export { default as DuplicateTransactionWarning } from './DuplicateTransactionWarning';
+export { default as SearchBar } from './SearchBar';
+export { default as FilterDropdown } from './FilterDropdown';
