@@ -47,6 +47,12 @@ export default function Navbar({ onMenuToggle }: NavbarProps) {
               Validation
             </Link>
             <Link
+              href="/validation-history"
+              className="text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
+            >
+              History
+            </Link>
+            <Link
               href="/ai-insights"
               className="text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
             >
