@@ -9,6 +9,7 @@ interface TransactionTableProps {
   transactions: Transaction[];
   isLoading?: boolean;
   onViewDetails?: (transaction: Transaction) => void;
+  onRowClick?: (transaction: Transaction) => void;
   onDelete?: (transactionId: string) => void;
   hasError?: boolean;
 }
@@ -40,6 +41,7 @@ export default function TransactionTable({
   transactions,
   isLoading = false,
   onViewDetails,
+  onRowClick,
   onDelete,
   hasError = false,
 }: TransactionTableProps) {
@@ -139,7 +141,10 @@ export default function TransactionTable({
             return (
               <tr
                 key={transaction.id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => onRowClick?.(transaction)}
+                className={`hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                  onRowClick ? 'cursor-pointer' : ''
+                }`}
               >
                 <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                   {transaction.transactionId}

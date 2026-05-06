@@ -7,6 +7,7 @@ import Button from '@/components/common/Button';
 import { Transaction } from '@/types/transaction';
 import { transactionService } from '@/services';
 import { formatErrorMessage } from '@/utils/errorHandler';
+import { ValidationDetailsModal } from '@/components/modals';
 
 // Mock data for fallback
 const mockTransactions: Transaction[] = [
@@ -20,6 +21,20 @@ const mockTransactions: Transaction[] = [
     vendor: 'Vendor A',
     date: '2026-05-07T10:30:00Z',
     description: 'Monthly subscription',
+    validationDetails: [
+      {
+        rule: 'Amount Verification',
+        message: 'Transaction amount matches invoice',
+        severity: 'info',
+        timestamp: '2026-05-07T10:31:00Z',
+      },
+      {
+        rule: 'Vendor Authentication',
+        message: 'Vendor identity verified against whitelist',
+        severity: 'info',
+        timestamp: '2026-05-07T10:31:05Z',
+      },
+    ],
   },
   {
     id: '2',
@@ -31,6 +46,20 @@ const mockTransactions: Transaction[] = [
     vendor: 'Vendor B',
     date: '2026-05-07T09:15:00Z',
     description: 'Equipment purchase',
+    validationDetails: [
+      {
+        rule: 'Amount Verification',
+        message: 'Transaction amount exceeds approved budget threshold',
+        severity: 'error',
+        timestamp: '2026-05-07T09:16:00Z',
+      },
+      {
+        rule: 'PO Matching',
+        message: 'No matching purchase order found',
+        severity: 'error',
+        timestamp: '2026-05-07T09:16:05Z',
+      },
+    ],
   },
   {
     id: '3',
@@ -42,6 +71,14 @@ const mockTransactions: Transaction[] = [
     vendor: 'Vendor C',
     date: '2026-05-06T14:45:00Z',
     description: 'Software license',
+    validationDetails: [
+      {
+        rule: 'Amount Verification',
+        message: 'Amount verified successfully',
+        severity: 'info',
+        timestamp: '2026-05-06T14:46:00Z',
+      },
+    ],
   },
   {
     id: '4',
@@ -53,6 +90,20 @@ const mockTransactions: Transaction[] = [
     vendor: 'Vendor D',
     date: '2026-05-06T11:20:00Z',
     description: 'Consulting services',
+    validationDetails: [
+      {
+        rule: 'Duplicate Check',
+        message: 'Similar transaction found from 2 weeks ago',
+        severity: 'warning',
+        timestamp: '2026-05-06T11:21:00Z',
+      },
+      {
+        rule: 'Vendor Profile',
+        message: 'Vendor profile missing recent documentation',
+        severity: 'warning',
+        timestamp: '2026-05-06T11:21:05Z',
+      },
+    ],
   },
   {
     id: '5',
@@ -75,6 +126,8 @@ export default function TransactionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [vendorFilter, setVendorFilter] = useState('');
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Fetch transactions from API
   useEffect(() => {
@@ -112,6 +165,16 @@ export default function TransactionsPage() {
   const handleViewDetails = (transaction: Transaction) => {
     console.log('View details for:', transaction);
     alert(`Viewing details for ${transaction.transactionId}`);
+  };
+
+  const handleRowClick = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedTransaction(null);
   };
 
   const handleDelete = async (transactionId: string) => {
@@ -275,6 +338,7 @@ export default function TransactionsPage() {
         <TransactionTable
           transactions={transactions}
           isLoading={isLoading}
+          onRowClick={handleRowClick}
           onViewDetails={handleViewDetails}
           onDelete={handleDelete}
         />
@@ -313,6 +377,15 @@ export default function TransactionsPage() {
           </div>
         </div>
       </div>
+
+      {/* Validation Details Modal */}
+      {selectedTransaction && (
+        <ValidationDetailsModal
+          isOpen={isModalOpen}
+          transaction={selectedTransaction}
+          onClose={handleCloseModal}
+        />
+      )}
     </AppLayout>
   );
 }

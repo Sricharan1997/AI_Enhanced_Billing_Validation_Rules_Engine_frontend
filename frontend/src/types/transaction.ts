@@ -1,3 +1,10 @@
+export interface ValidationDetail {
+  rule: string;
+  message: string;
+  severity: 'error' | 'warning' | 'info';
+  timestamp?: string;
+}
+
 export interface Transaction {
   id: string;
   transactionId: string;
@@ -8,6 +15,7 @@ export interface Transaction {
   vendor: string;
   date: string;
   description?: string;
+  validationDetails?: ValidationDetail[];
 }
 
 export interface TransactionResponse {
