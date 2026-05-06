@@ -6,6 +6,7 @@ import TransactionTable from '@/components/tables/TransactionTable';
 import Button from '@/components/common/Button';
 import { Transaction } from '@/types/transaction';
 import { transactionService } from '@/services';
+import { formatErrorMessage } from '@/utils/errorHandler';
 
 // Mock data for fallback
 const mockTransactions: Transaction[] = [
@@ -15,6 +16,7 @@ const mockTransactions: Transaction[] = [
     amount: 1250.0,
     currency: 'USD',
     status: 'passed',
+    validationStatus: 'valid',
     vendor: 'Vendor A',
     date: '2026-05-07T10:30:00Z',
     description: 'Monthly subscription',
@@ -25,6 +27,7 @@ const mockTransactions: Transaction[] = [
     amount: 2100.0,
     currency: 'USD',
     status: 'failed',
+    validationStatus: 'invalid',
     vendor: 'Vendor B',
     date: '2026-05-07T09:15:00Z',
     description: 'Equipment purchase',
@@ -35,6 +38,7 @@ const mockTransactions: Transaction[] = [
     amount: 895.5,
     currency: 'USD',
     status: 'passed',
+    validationStatus: 'valid',
     vendor: 'Vendor C',
     date: '2026-05-06T14:45:00Z',
     description: 'Software license',
@@ -45,6 +49,7 @@ const mockTransactions: Transaction[] = [
     amount: 550.0,
     currency: 'USD',
     status: 'warning',
+    validationStatus: 'warning',
     vendor: 'Vendor D',
     date: '2026-05-06T11:20:00Z',
     description: 'Consulting services',
@@ -55,6 +60,7 @@ const mockTransactions: Transaction[] = [
     amount: 3200.0,
     currency: 'USD',
     status: 'pending',
+    validationStatus: 'unvalidated',
     vendor: 'Vendor E',
     date: '2026-05-05T16:30:00Z',
     description: 'Infrastructure costs',
@@ -65,6 +71,7 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [vendorFilter, setVendorFilter] = useState('');
@@ -75,6 +82,7 @@ export default function TransactionsPage() {
       try {
         setIsLoading(true);
         setHasError(false);
+        setErrorMessage('');
 
         const response = await transactionService.getTransactions({
           search: searchQuery || undefined,
@@ -85,9 +93,14 @@ export default function TransactionsPage() {
         setTransactions(response.data || mockTransactions);
       } catch (error) {
         console.error('Failed to fetch transactions:', error);
-        // Fallback to mock data on error
+        
+        // Enhanced error handling
+        const errorMsg = formatErrorMessage(error);
+        setErrorMessage(errorMsg);
+        
+        // Show error state but still allow user to see mock data
+        setHasError(true);
         setTransactions(mockTransactions);
-        setHasError(false); // Don't show error UI, just use mock data
       } finally {
         setIsLoading(false);
       }
@@ -108,7 +121,8 @@ export default function TransactionsPage() {
         setTransactions(transactions.filter((t) => t.id !== transactionId));
       } catch (error) {
         console.error('Failed to delete transaction:', error);
-        alert('Failed to delete transaction');
+        const errorMsg = formatErrorMessage(error);
+        alert(`Failed to delete transaction: ${errorMsg}`);
       }
     }
   };
@@ -126,6 +140,45 @@ export default function TransactionsPage() {
   return (
     <AppLayout>
       <div className="space-y-8">
+        {/* Error Alert */}
+        {hasError && (
+          <div className="rounded-lg border-l-4 border-red-400 bg-red-50 p-4 dark:bg-red-900/20 dark:border-red-500">
+            <div className="flex items-start gap-3">
+              <svg
+                className="h-5 w-5 flex-shrink-0 text-red-600 dark:text-red-400 mt-0.5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <div className="flex-1">
+                <h3 className="font-medium text-red-800 dark:text-red-300">
+                  Connection Error
+                </h3>
+                <p className="mt-1 text-sm text-red-700 dark:text-red-200">
+                  {errorMessage} - Displaying cached data. Please check your connection.
+                </p>
+              </div>
+              <button
+                onClick={() => setHasError(false)}
+                className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+              >
+                <span className="sr-only">Dismiss</span>
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -166,7 +219,8 @@ export default function TransactionsPage() {
                 placeholder="TXN-..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                disabled={isLoading}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               />
             </div>
             <div>
@@ -176,7 +230,8 @@ export default function TransactionsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                disabled={isLoading}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               >
                 <option value="">All</option>
                 <option value="pending">Pending</option>
@@ -192,7 +247,8 @@ export default function TransactionsPage() {
               <select
                 value={vendorFilter}
                 onChange={(e) => setVendorFilter(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                disabled={isLoading}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               >
                 <option value="">All</option>
                 <option value="Vendor A">Vendor A</option>
@@ -203,7 +259,12 @@ export default function TransactionsPage() {
               </select>
             </div>
             <div className="flex items-end">
-              <Button variant="outline" onClick={handleResetFilters} className="w-full">
+              <Button
+                variant="outline"
+                onClick={handleResetFilters}
+                disabled={isLoading}
+                className="w-full"
+              >
                 Reset Filters
               </Button>
             </div>
@@ -216,7 +277,6 @@ export default function TransactionsPage() {
           isLoading={isLoading}
           onViewDetails={handleViewDetails}
           onDelete={handleDelete}
-          hasError={hasError}
         />
 
         {/* Summary Stats */}

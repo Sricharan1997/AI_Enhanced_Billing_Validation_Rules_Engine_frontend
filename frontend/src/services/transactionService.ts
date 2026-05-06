@@ -1,5 +1,6 @@
 import { apiClient } from './api';
 import { Transaction, TransactionResponse } from '@/types/transaction';
+import { handleApiError } from '@/utils/errorHandler';
 
 export interface TransactionFilters {
   search?: string;
@@ -29,8 +30,9 @@ class TransactionService {
 
       return response;
     } catch (error) {
-      console.error('Error fetching transactions:', error);
-      throw error;
+      const apiError = handleApiError(error);
+      console.error('Error fetching transactions:', apiError);
+      throw apiError;
     }
   }
 
@@ -41,8 +43,9 @@ class TransactionService {
       );
       return response;
     } catch (error) {
-      console.error(`Error fetching transaction ${id}:`, error);
-      throw error;
+      const apiError = handleApiError(error);
+      console.error(`Error fetching transaction ${id}:`, apiError);
+      throw apiError;
     }
   }
 
@@ -54,8 +57,9 @@ class TransactionService {
       );
       return response;
     } catch (error) {
-      console.error('Error creating transaction:', error);
-      throw error;
+      const apiError = handleApiError(error);
+      console.error('Error creating transaction:', apiError);
+      throw apiError;
     }
   }
 
@@ -70,8 +74,9 @@ class TransactionService {
       );
       return response;
     } catch (error) {
-      console.error(`Error updating transaction ${id}:`, error);
-      throw error;
+      const apiError = handleApiError(error);
+      console.error(`Error updating transaction ${id}:`, apiError);
+      throw apiError;
     }
   }
 
@@ -79,8 +84,9 @@ class TransactionService {
     try {
       await apiClient.delete(`${this.baseEndpoint}/${id}`);
     } catch (error) {
-      console.error(`Error deleting transaction ${id}:`, error);
-      throw error;
+      const apiError = handleApiError(error);
+      console.error(`Error deleting transaction ${id}:`, apiError);
+      throw apiError;
     }
   }
 
@@ -91,8 +97,9 @@ class TransactionService {
       );
       return response;
     } catch (error) {
-      console.error(`Error validating transaction ${id}:`, error);
-      throw error;
+      const apiError = handleApiError(error);
+      console.error(`Error validating transaction ${id}:`, apiError);
+      throw apiError;
     }
   }
 }

@@ -4,6 +4,7 @@ export interface Transaction {
   amount: number;
   currency: string;
   status: 'pending' | 'passed' | 'failed' | 'warning';
+  validationStatus?: 'valid' | 'invalid' | 'warning' | 'unvalidated';
   vendor: string;
   date: string;
   description?: string;

@@ -2,6 +2,7 @@
 
 import { Transaction } from '@/types/transaction';
 import EmptyState from '../common/EmptyState';
+import ValidationBadge from '../common/ValidationBadge';
 import Button from '../common/Button';
 
 interface TransactionTableProps {
@@ -122,6 +123,9 @@ export default function TransactionTable({
               Status
             </th>
             <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">
+              Validation
+            </th>
+            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">
               Date
             </th>
             <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-white">
@@ -152,6 +156,12 @@ export default function TransactionTable({
                   >
                     {statusInfo.label}
                   </span>
+                </td>
+                <td className="px-6 py-4 text-sm">
+                  <ValidationBadge
+                    status={transaction.validationStatus || 'unvalidated'}
+                    size="sm"
+                  />
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                   {formatDate(transaction.date)}
