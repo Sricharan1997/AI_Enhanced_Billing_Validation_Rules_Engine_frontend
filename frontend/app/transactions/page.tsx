@@ -5,6 +5,7 @@ import AppLayout from '@/components/AppLayout';
 import TransactionTable from '@/components/tables/TransactionTable';
 import Button from '@/components/common/Button';
 import { DuplicateTransactionWarning, SearchBar, FilterDropdown } from '@/components/common';
+import { useToast } from '@/providers/ToastProvider';
 import { Transaction } from '@/types/transaction';
 import { transactionService } from '@/services';
 import { formatErrorMessage } from '@/utils/errorHandler';
@@ -120,6 +121,7 @@ const mockTransactions: Transaction[] = [
 ];
 
 export default function TransactionsPage() {
+  const { showToast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -159,13 +161,27 @@ export default function TransactionsPage() {
         setHasError(true);
         setTransactions(mockTransactions);
         detectDuplicates(mockTransactions);
+
+        // Show toast notification with retry action
+        showToast({
+          message: `Failed to load transactions: ${errorMsg}`,
+          type: 'error',
+          duration: 0, // Persistent until user closes
+          action: {
+            label: 'Retry',
+            onClick: () => {
+              setHasError(false);
+              fetchTransactions();
+            },
+          },
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchTransactions();
-  }, [searchQuery, statusFilter, vendorFilter]);
+  }, [searchQuery, statusFilter, vendorFilter, showToast]);
 
   const handleViewDetails = (transaction: Transaction) => {
     console.log('View details for:', transaction);
@@ -205,16 +221,33 @@ export default function TransactionsPage() {
       try {
         await transactionService.deleteTransaction(transactionId);
         setTransactions(transactions.filter((t) => t.id !== transactionId));
+        showToast({
+          message: 'Transaction deleted successfully',
+          type: 'success',
+          duration: 3000,
+        });
       } catch (error) {
         console.error('Failed to delete transaction:', error);
         const errorMsg = formatErrorMessage(error);
-        alert(`Failed to delete transaction: ${errorMsg}`);
+        showToast({
+          message: `Failed to delete transaction: ${errorMsg}`,
+          type: 'error',
+          duration: 0,
+          action: {
+            label: 'Retry',
+            onClick: () => handleDelete(transactionId),
+          },
+        });
       }
     }
   };
 
   const handleNewTransaction = () => {
-    alert('New transaction dialog would open here');
+    showToast({
+      message: 'New transaction dialog would open here',
+      type: 'info',
+      duration: 3000,
+    });
   };
 
   const handleResetFilters = () => {

@@ -7,3 +7,6 @@ export { default as DuplicateTransactionWarning } from './DuplicateTransactionWa
 export { default as SearchBar } from './SearchBar';
 export { default as FilterDropdown } from './FilterDropdown';
 export { default as Pagination } from './Pagination';
+export { default as Toast } from './Toast';
+export { default as ToastContainer } from './ToastContainer';
+export { default as ErrorBoundary } from './ErrorBoundary';
