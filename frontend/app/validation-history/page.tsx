@@ -7,6 +7,7 @@ import ValidationHistoryTable, {
 } from '@/components/tables/ValidationHistoryTable';
 import Pagination from '@/components/common/Pagination';
 import { Card, SearchBar, FilterDropdown } from '@/components/common';
+import { useToast } from '@/providers/ToastProvider';
 
 // Mock validation history data
 const mockValidationHistory: ValidationHistoryRecord[] = [
@@ -153,15 +154,18 @@ const mockValidationHistory: ValidationHistoryRecord[] = [
 ];
 
 export default function ValidationHistoryPage() {
+  const { showToast } = useToast();
+  const [validationHistory, setValidationHistory] = useState(mockValidationHistory);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedRecord, setSelectedRecord] = useState<ValidationHistoryRecord | null>(null);
+  const [revalidatingId, setRevalidatingId] = useState<string | null>(null);
 
   // Filter records based on search and filters
   const filteredRecords = useMemo(() => {
-    return mockValidationHistory.filter((record) => {
+    return validationHistory.filter((record) => {
       const matchesSearch =
         !searchQuery ||
         record.transactionId.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -171,7 +175,7 @@ export default function ValidationHistoryPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, validationHistory]);
 
   // Paginate filtered records
   const paginatedRecords = useMemo(() => {
@@ -183,16 +187,16 @@ export default function ValidationHistoryPage() {
 
   // Calculate statistics
   const stats = useMemo(() => {
-    const total = mockValidationHistory.length;
-    const valid = mockValidationHistory.filter((r) => r.status === 'valid').length;
-    const invalid = mockValidationHistory.filter((r) => r.status === 'invalid').length;
-    const warning = mockValidationHistory.filter((r) => r.status === 'warning').length;
+    const total = validationHistory.length;
+    const valid = validationHistory.filter((r) => r.status === 'valid').length;
+    const invalid = validationHistory.filter((r) => r.status === 'invalid').length;
+    const warning = validationHistory.filter((r) => r.status === 'warning').length;
     const avgDuration =
-      mockValidationHistory.reduce((sum, r) => sum + r.duration, 0) /
-      mockValidationHistory.length;
+      validationHistory.reduce((sum, r) => sum + r.duration, 0) /
+      validationHistory.length;
 
     return { total, valid, invalid, warning, avgDuration: Math.round(avgDuration) };
-  }, []);
+  }, [validationHistory]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -203,9 +207,58 @@ export default function ValidationHistoryPage() {
     setCurrentPage(1); // Reset to first page
   };
 
-  const handleRetry = (recordId: string) => {
-    console.log('Retrying validation for record:', recordId);
-    alert(`Retrying validation for ${recordId}`);
+  const handleRetry = async (recordId: string) => {
+    setRevalidatingId(recordId);
+    
+    try {
+      // Simulate API call with delay
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // Update the record with new validation result
+      const updatedHistory = validationHistory.map((record) => {
+        if (record.id === recordId) {
+          return {
+            ...record,
+            status: 'valid' as const,
+            rulesFailed: 0,
+            rulesWarning: 0,
+            duration: Math.floor(Math.random() * (300 - 150 + 1)) + 150,
+            timestamp: new Date().toISOString(),
+          };
+        }
+        return record;
+      });
+
+      setValidationHistory(updatedHistory);
+
+      // Update selected record if it's the one being revalidated
+      if (selectedRecord?.id === recordId) {
+        const updatedRecord = updatedHistory.find((r) => r.id === recordId);
+        if (updatedRecord) {
+          setSelectedRecord(updatedRecord);
+        }
+      }
+
+      // Show success notification
+      showToast({
+        message: `Transaction ${recordId} has been successfully revalidated`,
+        type: 'success',
+        duration: 5000,
+      });
+
+      console.log('Revalidation successful for record:', recordId);
+    } catch (error) {
+      // Show error notification
+      showToast({
+        message: `Failed to revalidate transaction ${recordId}`,
+        type: 'error',
+        duration: 5000,
+      });
+
+      console.error('Revalidation error:', error);
+    } finally {
+      setRevalidatingId(null);
+    }
   };
 
   const handleRowClick = (record: ValidationHistoryRecord) => {
@@ -293,28 +346,28 @@ export default function ValidationHistoryPage() {
                   label: 'Valid',
                   value: 'valid',
                   icon: '✅',
-                  count: mockValidationHistory.filter((r) => r.status === 'valid')
+                  count: validationHistory.filter((r) => r.status === 'valid')
                     .length,
                 },
                 {
                   label: 'Invalid',
                   value: 'invalid',
                   icon: '❌',
-                  count: mockValidationHistory.filter((r) => r.status === 'invalid')
+                  count: validationHistory.filter((r) => r.status === 'invalid')
                     .length,
                 },
                 {
                   label: 'Warning',
                   value: 'warning',
                   icon: '⚠️',
-                  count: mockValidationHistory.filter((r) => r.status === 'warning')
+                  count: validationHistory.filter((r) => r.status === 'warning')
                     .length,
                 },
                 {
                   label: 'Unvalidated',
                   value: 'unvalidated',
                   icon: '👁',
-                  count: mockValidationHistory.filter((r) => r.status === 'unvalidated')
+                  count: validationHistory.filter((r) => r.status === 'unvalidated')
                     .length,
                 },
               ]}
@@ -371,19 +424,64 @@ export default function ValidationHistoryPage() {
                   {selectedRecord.amount} | Duration: {selectedRecord.duration}ms
                 </p>
               </div>
-              <button
-                onClick={() => setSelectedRecord(null)}
-                className="text-gray-400 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-400"
-              >
-                <span className="sr-only">Close</span>
-                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleRetry(selectedRecord.id)}
+                  disabled={revalidatingId === selectedRecord.id}
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-blue-400 dark:hover:bg-blue-500"
+                >
+                  {revalidatingId === selectedRecord.id ? (
+                    <>
+                      <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      Revalidating...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      Revalidate
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setSelectedRecord(null)}
+                  className="text-gray-400 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-400"
+                >
+                  <span className="sr-only">Close</span>
+                  <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
           </Card>
         )}
