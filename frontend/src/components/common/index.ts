@@ -13,3 +13,5 @@ export { default as ToastContainer } from './ToastContainer';
 export { default as ErrorBoundary } from './ErrorBoundary';
 export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as CorrectionPreviewModal } from './CorrectionPreviewModal';
+export { default as ProcessingStatusComponent } from './ProcessingStatusComponent';
+export { default as AsyncProcessingIndicator } from './AsyncProcessingIndicator';

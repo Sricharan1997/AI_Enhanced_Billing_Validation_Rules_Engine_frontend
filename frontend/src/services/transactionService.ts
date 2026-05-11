@@ -102,6 +102,132 @@ class TransactionService {
       throw apiError;
     }
   }
+
+  /**
+   * Start AI analysis for a transaction
+   * @param id - Transaction ID
+   * @returns Processing task info
+   */
+  async startAIAnalysis(
+    id: string
+  ): Promise<{
+    taskId: string;
+    status: 'initiated';
+    estimatedDuration?: number;
+  }> {
+    try {
+      const response = await apiClient.post(
+        `${this.baseEndpoint}/${id}/ai-analysis`
+      );
+      return response;
+    } catch (error) {
+      const apiError = handleApiError(error);
+      console.error(`Error starting AI analysis for transaction ${id}:`, apiError);
+      throw apiError;
+    }
+  }
+
+  /**
+   * Check AI processing status for a transaction
+   * @param id - Transaction ID
+   * @returns Processing status and results
+   */
+  async checkAIProcessingStatus(id: string): Promise<{
+    status: 'processing' | 'completed' | 'failed' | 'pending';
+    progress?: number;
+    corrections?: unknown;
+    aiInsights?: unknown;
+    error?: string;
+    processingStartedAt?: string;
+    estimatedCompletionTime?: string;
+  }> {
+    try {
+      const response = await apiClient.checkAIProcessingStatus(id);
+      return response;
+    } catch (error) {
+      const apiError = handleApiError(error);
+      console.error(
+        `Error checking AI processing status for transaction ${id}:`,
+        apiError
+      );
+      throw apiError;
+    }
+  }
+
+  /**
+   * Start batch AI analysis for multiple transactions
+   * @param transactionIds - Array of transaction IDs
+   * @returns Batch processing task info
+   */
+  async startBatchAIAnalysis(
+    transactionIds: string[]
+  ): Promise<{
+    batchId: string;
+    status: 'initiated';
+    totalItems: number;
+    estimatedDuration?: number;
+  }> {
+    try {
+      const response = await apiClient.startBatchAIProcessing(transactionIds);
+      return response;
+    } catch (error) {
+      const apiError = handleApiError(error);
+      console.error('Error starting batch AI analysis:', apiError);
+      throw apiError;
+    }
+  }
+
+  /**
+   * Check batch AI analysis status
+   * @param batchId - Batch processing ID
+   * @returns Batch processing status
+   */
+  async checkBatchAnalysisStatus(
+    batchId: string
+  ): Promise<{
+    status: 'processing' | 'completed' | 'failed' | 'pending';
+    totalItems: number;
+    processedItems: number;
+    failedItems: number;
+    progress: number;
+    results?: unknown[];
+    error?: string;
+  }> {
+    try {
+      const response = await apiClient.checkBatchProcessingStatus(batchId);
+      return response;
+    } catch (error) {
+      const apiError = handleApiError(error);
+      console.error(`Error checking batch analysis status for ${batchId}:`, apiError);
+      throw apiError;
+    }
+  }
+
+  /**
+   * Poll for AI analysis completion
+   * @param id - Transaction ID
+   * @param endpoint - Custom polling endpoint (optional)
+   * @returns Processing status
+   */
+  async pollAIAnalysisStatus(
+    id: string,
+    endpoint: string = '/ai-processing'
+  ): Promise<{
+    status: 'processing' | 'completed' | 'failed' | 'pending';
+    progress?: number;
+    data?: unknown;
+    error?: string;
+    estimatedTimeRemaining?: number;
+  }> {
+    try {
+      const response = await apiClient.pollStatus(endpoint, id);
+      return response;
+    } catch (error) {
+      const apiError = handleApiError(error);
+      console.error(`Error polling AI analysis status for transaction ${id}:`, apiError);
+      throw apiError;
+    }
+  }
 }
 
 export const transactionService = new TransactionService();
